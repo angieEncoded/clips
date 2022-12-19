@@ -11,7 +11,7 @@ export class AlertComponent {
 
   // treats this function as a 'getter' function
   get bgColor(){
-    console.log(`bg-${this.color}-400`)
+    // console.log(`bg-${this.color}-400`)
     return `bg-${this.color}-400`
 
   }
