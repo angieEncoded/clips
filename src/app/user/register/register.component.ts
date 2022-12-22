@@ -1,6 +1,7 @@
-import { Component } from '@angular/core';
-import { FormGroup, FormControl, Validators } from '@angular/forms'
+import { FormControl, FormGroup, Validators } from '@angular/forms'
+
 import { AuthService } from 'src/app/services/auth.service';
+import { Component } from '@angular/core';
 import IUser from 'src/app/models/user.model';
 
 @Component({
@@ -72,7 +73,7 @@ async register(){
 
 
   try {
-
+    // Forms are now typed
     await this.auth.createUser(this.registerForm.value as IUser)
 
 
