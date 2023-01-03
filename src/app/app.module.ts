@@ -7,12 +7,14 @@ import { UserModule } from './user/user.module';
 import {AngularFireModule} from '@angular/fire/compat'
 import { environment } from 'src/environments/environment'
 import { AngularFireAuthModule } from "@angular/fire/compat/auth"
-import { AngularFirestoreModule} from "@angular/fire/compat/firestore"
+import { AngularFirestoreModule} from "@angular/fire/compat/firestore";
+import { HomeComponent } from './home/home.component'
 
 @NgModule({
   declarations: [
     AppComponent,
-    NavComponent
+    NavComponent,
+    HomeComponent
   ],
   imports: [
     BrowserModule,
