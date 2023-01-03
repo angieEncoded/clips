@@ -1,4 +1,6 @@
+import { AuthService } from './services/auth.service';
 import { Component } from '@angular/core';
+
 // import { ModalService } from './services/modal.service';
 
 @Component({
@@ -8,6 +10,9 @@ import { Component } from '@angular/core';
 })
 export class AppComponent {
   title = 'clips';
+
+  constructor(public auth:AuthService){}
+
   // showModal = true
   
   // constructor (public modal:ModalService) {

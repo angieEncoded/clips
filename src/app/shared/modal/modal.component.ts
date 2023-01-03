@@ -1,4 +1,5 @@
-import { Component, OnInit, Input, ElementRef } from '@angular/core';
+import { Component, ElementRef, Input, OnDestroy, OnInit } from '@angular/core';
+
 import { ModalService } from 'src/app/services/modal.service';
 
 @Component({
@@ -7,7 +8,7 @@ import { ModalService } from 'src/app/services/modal.service';
   styleUrls: ['./modal.component.css'],
   // providers: [ModalService]
 })
-export class ModalComponent implements OnInit{
+export class ModalComponent implements OnInit, OnDestroy{
 
   @Input() modalID = ""
 
@@ -29,4 +30,8 @@ export class ModalComponent implements OnInit{
       document.body.appendChild(this.element.nativeElement)
     }
 
+    // Remove the modal from the dom
+    ngOnDestroy(): void {
+      document.body.removeChild(this.element.nativeElement)
+    }
 }
