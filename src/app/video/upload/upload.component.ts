@@ -1,9 +1,10 @@
-import { Component, OnInit } from '@angular/core';
+import { AngularFireStorage, AngularFireUploadTask } from '@angular/fire/compat/storage';
+import { Component, OnDestroy } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 
 import { AngularFireAuth } from '@angular/fire/compat/auth';
-import { AngularFireStorage } from '@angular/fire/compat/storage';
 import { ClipService } from 'src/app/services/clip.service';
+import { Router } from '@angular/router';
 import firebase from 'firebase/compat/app'
 import {last} from 'rxjs/operators'
 import { switchMap } from 'rxjs/operators';
@@ -17,7 +18,7 @@ import {v4 as uuid} from 'uuid'
 
 
 
-export class UploadComponent implements OnInit{
+export class UploadComponent implements OnDestroy{
 
   isDragOver = false;
   file: File | null = null;
@@ -29,6 +30,7 @@ export class UploadComponent implements OnInit{
   percentage = 0;
   showPercentage = false;
   user: firebase.User | null = null;
+  task?: AngularFireUploadTask
 
   title = new FormControl('', {
     validators: [
@@ -45,7 +47,8 @@ export class UploadComponent implements OnInit{
   constructor(
     private storage: AngularFireStorage, 
     private auth: AngularFireAuth,
-    private clipService: ClipService
+    private clipService: ClipService,
+    private router: Router
   ){
     // grab the user
     auth.user.subscribe(user => this.user = user)
@@ -54,18 +57,24 @@ export class UploadComponent implements OnInit{
 
 
 
-  ngOnInit(): void {
-
+  ngOnDestroy(): void {
+    // Cancel the task if the user navigates away from the page
+    this.task?.cancel()
   }
 
 
 
   storeFile($event: Event) {
+    // console.log($event)
     this.isDragOver = false
                 // Assert the type so the compiler doesn't have to
                 // Also make it optional because typescript cannot ensure it won't be null
-    this.file = ($event as DragEvent).dataTransfer?.files.item(0) ?? null
-    console.log(this.file)
+
+                // Determine if it's coming from the drag event or it's coming from the file upload button
+    this.file = ($event as DragEvent).dataTransfer ? ($event as DragEvent).dataTransfer?.files.item(0) ?? null : 
+                ($event.target as HTMLInputElement).files?.item(0) ?? null
+ 
+    // console.log(this.file)
 
     if(!this.file || this.file.type !== 'video/mp4'){
       // console.error("wrong kind of file")
@@ -80,6 +89,10 @@ export class UploadComponent implements OnInit{
 
 
   uploadFile() {
+
+    // This will shut down the form as we upload.
+    // Available on all groups and controls
+    this.uploadForm.disable()
     
     this.showAlert = true;
     this.alertColor = "blue"
@@ -93,10 +106,10 @@ export class UploadComponent implements OnInit{
     const clipPath = `clips/${clipFileName}.mp4`
 
 
-    const task = this.storage.upload(clipPath, this.file)
+    this.task = this.storage.upload(clipPath, this.file)
     const clipRef = this.storage.ref(clipPath) // create a reference to this file
 
-    task.percentageChanges().subscribe(progress => {
+    this.task .percentageChanges().subscribe(progress => {
       this.percentage = progress as number / 100
     })
 
@@ -104,30 +117,42 @@ export class UploadComponent implements OnInit{
     // task.snapshotChanges().subscribe(console.log)
 
     // Ignore all except the last value from the observable
-    task.snapshotChanges().pipe(
+    this.task.snapshotChanges().pipe(
       last(),
       switchMap(() => clipRef.getDownloadURL())
     ).subscribe({
-      next: (url) => {
+      next: async (url) => {
         const clip = {
           uid: this.user?.uid as string,
           displayName: this.user?.displayName as string,
           title: this.title.value,
           fileName: `${clipFileName}.mp4`,
-          url: url
-
+          url: url,
+          timestamp: firebase.firestore.FieldValue.serverTimestamp()
         }
+        // console.log(clip)
+        const clipDocumentReference = await this.clipService.createClip(clip)
+
         console.log(clip)
-        this.clipService.createClip(clip)
 
 
         this.alertColor = "green"
         this.alertMessage = "Success! Your clip is now ready to share with the world!"
         this.showPercentage = false;
 
+        // redirect the user to the clip that was uploaded
+        setTimeout(() => {
+          this.router.navigate([
+            'clip', clipDocumentReference.id
+          ])
+        }, 1000);
+
       },
 
       error: (error) => {
+        
+        this.uploadForm.enable()
+
         this.alertColor = "red"
         this.alertMessage = "Upload Failed! Please try again later."
         this.inSubmission = true
